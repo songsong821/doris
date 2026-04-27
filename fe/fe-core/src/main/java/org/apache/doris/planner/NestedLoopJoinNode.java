@@ -206,27 +206,12 @@ public class NestedLoopJoinNode extends JoinNodeBase {
             outputType = LocalExchangeType.ADAPTIVE_PASSTHROUGH;
         }
 
-        // Probe side: force-enforce. NLJ creates a pipeline boundary in BE; Step 4 always
-        // inserts non-hash exchanges regardless of current distribution. Must always insert
-        // ADAPTIVE_PASSTHROUGH even when child already outputs it (e.g., nested NLJ).
-        // Manually propagate serial flag + recurse + force-insert (no enforceRequire —
-        // enforceRequire would skip insertion when child already satisfies the requirement).
-        boolean probeChildHasSerialAncestor = shouldResetSerialFlagForChild(0)
-                ? false : translatorContext.hasSerialAncestorInPipeline(this) || isSerialNode();
-        translatorContext.setHasSerialAncestorInPipeline(children.get(0), probeChildHasSerialAncestor);
-        Pair<PlanNode, LocalExchangeType> probeChildOutput = children.get(0)
-                .enforceAndDeriveLocalExchange(translatorContext, this, probeSideRequire);
-        PlanNode probeSide;
-        if (probeSideRequire.preferType() != LocalExchangeType.NOOP) {
-            LocalExchangeType preferType = AddLocalExchange.resolveExchangeType(
-                    probeSideRequire, translatorContext, this, probeChildOutput.first);
-            List<Expr> distributeExprs = getChildDistributeExprList(0);
-            probeSide = createLocalExchange(translatorContext, probeChildOutput.first, preferType, distributeExprs);
-        } else {
-            probeSide = probeChildOutput.first;
-        }
-
-        // Build side: normal enforce (enforceRequire handles satisfy + shouldSkipLE)
+        // Both sides use enforceRequire — it handles serial flag propagation, satisfy
+        // check (skip LE when child already outputs the required type, e.g., chained NLJs),
+        // serial ancestor skip, and serial child fallback (auto-upgrade noRequire to
+        // requirePassthrough when child is serial but this node is not).
+        PlanNode probeSide = enforceRequire(
+                translatorContext, children.get(0), 0, probeSideRequire).first;
         PlanNode buildSide = enforceRequire(
                 translatorContext, children.get(1), 1, buildSideRequire).first;
         this.children = Lists.newArrayList(probeSide, buildSide);

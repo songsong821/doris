@@ -320,7 +320,7 @@ public class HashJoinNode extends JoinNodeBase {
             // For serial probe: output is PASSTHROUGH (data from single instance).
             // For non-serial probe: propagate probe side's actual distribution.
             outputType = probeChildSerial ? LocalExchangeType.PASSTHROUGH : null;
-        } else if (AddLocalExchange.isColocated(this) || isBucketShuffle()) {
+        } else if (isColocate() || isBucketShuffle()) {
             probeSideRequire = LocalExchangeTypeRequire.requireBucketHash();
             // For BUCKET_SHUFFLE with serial build child: use requireBucketHash() (not
             // requirePassToOne()). Unlike BROADCAST joins, BUCKET_SHUFFLE has no shared

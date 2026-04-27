@@ -999,15 +999,6 @@ public abstract class PlanNode extends TreeNode<PlanNode> {
         Pair<PlanNode, LocalExchangeType> childOutput =
                 child.enforceAndDeriveLocalExchange(translatorContext, this, require);
 
-        // 2.5. Serial child override: if child is serial on BE, force output to NOOP.
-        //      This ensures the framework handles LE insertion uniformly — child nodes
-        //      don't need to check serial status themselves.  The serial child's actual
-        //      distribution is irrelevant because it runs with 1 task; downstream needs
-        //      LE to restore parallelism (step 3) or skip LE entirely (step 4b).
-        if (childOutput.first.isSerialOperatorOnBe(translatorContext.getConnectContext())) {
-            childOutput = Pair.of(childOutput.first, LocalExchangeType.NOOP);
-        }
-
         // 3. Framework-level serial child check (mirrors BE base class required_data_distribution):
         //    If child will be serial on BE but this node is not serial, the pipeline has a
         //    1-task serial child feeding an N-task non-serial parent. Without LE, pipeline

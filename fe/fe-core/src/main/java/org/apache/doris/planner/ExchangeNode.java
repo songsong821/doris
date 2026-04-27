@@ -178,13 +178,56 @@ public class ExchangeNode extends PlanNode {
     @Override
     public Pair<PlanNode, LocalExchangeType> enforceAndDeriveLocalExchange(PlanTranslatorContext translatorContext,
             PlanNode parent, LocalExchangeTypeRequire parentRequire) {
-        // Report actual distribution. Serial handling is done by the framework
-        // (enforceRequire step 2.5 overrides serial child output to NOOP).
-        if (partitionType == TPartitionType.HASH_PARTITIONED) {
+        // Must match the BE serial condition in toThrift(): isSerialNode() && useSerialSource().
+        // Only insert PASSTHROUGH when the exchange will actually be serial on the BE.
+        // Without useSerialSource() check, we'd insert PASSTHROUGH in non-pooling fragments
+        // where the exchange has N tasks, corrupting broadcast join data distribution
+        // Use the unified isSerialOperatorOnBe() which matches toThrift serial condition.
+        if (isSerialOperatorOnBe(ConnectContext.get())) {
+            // If there is already a serial ancestor in the same pipeline (e.g., serial NLJ
+            // for RIGHT_OUTER/FULL_OUTER join), don't insert any local exchange. The serial
+            // ancestor already constrains the pipeline to 1 task. Inserting a PASSTHROUGH LE
+            // would create a pipeline boundary where the BE LOCAL_EXCHANGE_NODE handler calls
+            // set_num_tasks(_num_instances), overriding the serial constraint and causing a
+            // DCHECK crash (serial operator in pipeline with num_tasks > 1).
+            if (translatorContext.hasSerialAncestorInPipeline(this)) {
+                return Pair.of(this, LocalExchangeType.NOOP);
+            }
+            // Serial HASH/BUCKET exchange:
+            // In pooling fragments, return NOOP so parent inserts hash/bucket LE with
+            // PASSTHROUGH fan-out (heavy-ops avoidance). Serial exchange has 1 task,
+            // LE fans out to _num_instances tasks.
+            // In non-pooling fragments, report the actual distribution type so parent's
+            // require is satisfied without inserting LE. The serial exchange reduces
+            // pipeline num_tasks to 1, matching BE-native behavior. Inserting LE in
+            // non-pooling fragments creates a pipeline split where downstream has
+            // _num_instances tasks but only 1 sender, causing shared-state mismatch.
+            boolean useSerial = fragment != null
+                    && fragment.useSerialSource(translatorContext.getConnectContext());
+            if (partitionType == TPartitionType.HASH_PARTITIONED
+                    || partitionType == TPartitionType.BUCKET_SHFFULE_HASH_PARTITIONED) {
+                if (useSerial) {
+                    return Pair.of(this, LocalExchangeType.NOOP);
+                }
+                LocalExchangeType outputType = partitionType == TPartitionType.HASH_PARTITIONED
+                        ? LocalExchangeType.GLOBAL_EXECUTION_HASH_SHUFFLE
+                        : LocalExchangeType.BUCKET_HASH_SHUFFLE;
+                return Pair.of(this, outputType);
+            }
+            // For UNPARTITIONED (broadcast): PASSTHROUGH fan-out is needed because
+            // the exchange has 1 task but downstream needs N tasks.
+            if (useSerial) {
+                PlanNode pt = new LocalExchangeNode(translatorContext.nextPlanNodeId(),
+                        this, LocalExchangeType.PASSTHROUGH, null);
+                return Pair.of(pt, LocalExchangeType.PASSTHROUGH);
+            }
+            return Pair.of(this, LocalExchangeType.NOOP);
+        } else if (partitionType == TPartitionType.HASH_PARTITIONED) {
             return Pair.of(this, LocalExchangeType.GLOBAL_EXECUTION_HASH_SHUFFLE);
         } else if (partitionType == TPartitionType.BUCKET_SHFFULE_HASH_PARTITIONED) {
             return Pair.of(this, LocalExchangeType.BUCKET_HASH_SHUFFLE);
+        } else {
+            return Pair.of(this, LocalExchangeType.NOOP);
         }
-        return Pair.of(this, LocalExchangeType.NOOP);
     }
 }

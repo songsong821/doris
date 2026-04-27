@@ -222,7 +222,17 @@ public class LocalExchangeNode extends PlanNode {
 
         @Override
         public boolean satisfy(LocalExchangeType provide) {
-            return requireType == provide;
+            if (requireType == provide) {
+                return true;
+            }
+            // ADAPTIVE_PASSTHROUGH is a superset of PASSTHROUGH — both fan out data
+            // from fewer to more tasks. BE's need_to_local_exchange treats them as
+            // compatible, so ADAPTIVE_PASSTHROUGH satisfies a PASSTHROUGH requirement.
+            if (requireType == LocalExchangeType.PASSTHROUGH
+                    && provide == LocalExchangeType.ADAPTIVE_PASSTHROUGH) {
+                return true;
+            }
+            return false;
         }
 
         @Override

@@ -405,6 +405,19 @@ public class ThriftPlansBuilder {
             TPlanFragment planThrift = fragment.toThrift();
             planThrift.query_cache_param = fragment.queryCacheParam;
             params.setFragment(planThrift);
+            if (planThrift.isSetPlan()) {
+                long leCount = planThrift.getPlan().getNodes().stream()
+                        .filter(n -> n.getNodeType() == org.apache.doris.thrift.TPlanNodeType.LOCAL_EXCHANGE_NODE)
+                        .count();
+                if (leCount > 0) {
+                    org.apache.logging.log4j.LogManager.getLogger(ThriftPlansBuilder.class).info(
+                            "ThriftPlan fragment={} totalNodes={} localExchangeNodes={} rootType={}",
+                            fragment.getFragmentId(),
+                            planThrift.getPlan().getNodesSize(),
+                            leCount,
+                            planThrift.getPlan().getNodes().get(0).getNodeType());
+                }
+            }
             params.setLocalParams(Lists.newArrayList());
             params.setWorkloadGroups(coordinatorContext.getWorkloadGroups());
 

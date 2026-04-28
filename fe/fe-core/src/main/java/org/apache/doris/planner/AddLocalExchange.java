@@ -44,11 +44,23 @@ public class AddLocalExchange {
                     .collect(java.util.stream.Collectors.groupingBy(
                             j -> j.getAssignedWorker().id(), java.util.stream.Collectors.counting()))
                     .values().stream().mapToLong(Long::longValue).max().orElse(0);
+            PlanFragment fragment = pipePlan.getFragmentJob().getFragment();
             if (maxPerBeInstances <= 1) {
+                org.apache.logging.log4j.LogManager.getLogger(AddLocalExchange.class).info(
+                        "addLocalExchange SKIP: fragment={} maxPerBeInstances={} planRoot={}",
+                        fragment.getFragmentId(), maxPerBeInstances,
+                        fragment.getPlanRoot().getClass().getSimpleName());
                 continue;
             }
-            PlanFragment fragment = pipePlan.getFragmentJob().getFragment();
+            String rootBefore = fragment.getPlanRoot().getClass().getSimpleName()
+                    + "#" + fragment.getPlanRoot().getId();
             addLocalExchangeForFragment(fragment, context);
+            String rootAfter = fragment.getPlanRoot().getClass().getSimpleName()
+                    + "#" + fragment.getPlanRoot().getId();
+            org.apache.logging.log4j.LogManager.getLogger(AddLocalExchange.class).info(
+                    "addLocalExchange DONE: fragment={} maxPerBeInstances={} rootBefore={} rootAfter={} changed={}",
+                    fragment.getFragmentId(), maxPerBeInstances,
+                    rootBefore, rootAfter, !rootBefore.equals(rootAfter));
         }
     }
 

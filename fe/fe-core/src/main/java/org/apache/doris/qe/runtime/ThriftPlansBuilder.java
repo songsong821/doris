@@ -407,17 +407,21 @@ public class ThriftPlansBuilder {
             params.setFragment(planThrift);
             if (planThrift.isSetPlan()) {
                 long leCount = planThrift.getPlan().getNodes().stream()
-                        .filter(n -> n.getNodeType() == org.apache.doris.thrift.TPlanNodeType.LOCAL_EXCHANGE_NODE)
+                        .filter(n -> n.getNodeType()
+                                == org.apache.doris.thrift.TPlanNodeType.LOCAL_EXCHANGE_NODE)
                         .count();
-                if (leCount > 0) {
+                boolean hasPooling = fragmentPlan.getInstanceJobs().stream().anyMatch(
+                        org.apache.doris.nereids.trees.plans.distribute.worker.job
+                                .LocalShuffleAssignedJob.class::isInstance);
+                if (hasPooling) {
                     org.apache.logging.log4j.LogManager.getLogger(ThriftPlansBuilder.class).info(
-                            "ThriftPlan qid={} be={} fragment={} nodes={} leNodes={} rootType={}",
-                            org.apache.doris.common.util.DebugUtil.printId(coordinatorContext.queryId),
-                            worker.address(),
-                            fragment.getFragmentId(),
-                            planThrift.getPlan().getNodesSize(),
-                            leCount,
-                            planThrift.getPlan().getNodes().get(0).getNodeType());
+                            "ThriftPlan qid={} fragment={} leNodes={} pooling=true"
+                            + " parallelInstances={} instances={}",
+                            org.apache.doris.common.util.DebugUtil.printId(
+                                    coordinatorContext.queryId),
+                            fragment.getFragmentId(), leCount,
+                            params.isSetParallelInstances() ? params.getParallelInstances() : -1,
+                            fragmentPlan.getInstanceJobs().size());
                 }
             }
             params.setLocalParams(Lists.newArrayList());

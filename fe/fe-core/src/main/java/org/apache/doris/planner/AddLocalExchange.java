@@ -36,20 +36,19 @@ public class AddLocalExchange {
      *  (global=2, per-BE=1), causing pipeline task mismatch and deadlock. */
     public void addLocalExchange(FragmentIdMapping<DistributedPlan> distributedPlans,
             PlanTranslatorContext context) {
+        String qid = context.getConnectContext() != null
+                ? org.apache.doris.common.util.DebugUtil.printId(context.getConnectContext().queryId()) : "?";
         for (DistributedPlan plan : distributedPlans.values()) {
             PipelineDistributedPlan pipePlan = (PipelineDistributedPlan) plan;
-            // Use per-BE max instance count to match BE's _num_instances semantics.
-            // BE skips _plan_local_exchange when _num_instances <= 1 (per-BE check).
             long maxPerBeInstances = pipePlan.getInstanceJobs().stream()
                     .collect(java.util.stream.Collectors.groupingBy(
                             j -> j.getAssignedWorker().id(), java.util.stream.Collectors.counting()))
                     .values().stream().mapToLong(Long::longValue).max().orElse(0);
             PlanFragment fragment = pipePlan.getFragmentJob().getFragment();
+            boolean isPooling = pipePlan.getInstanceJobs().stream().anyMatch(
+                    org.apache.doris.nereids.trees.plans.distribute.worker.job
+                            .LocalShuffleAssignedJob.class::isInstance);
             if (maxPerBeInstances <= 1) {
-                org.apache.logging.log4j.LogManager.getLogger(AddLocalExchange.class).info(
-                        "addLocalExchange SKIP: fragment={} maxPerBeInstances={} planRoot={}",
-                        fragment.getFragmentId(), maxPerBeInstances,
-                        fragment.getPlanRoot().getClass().getSimpleName());
                 continue;
             }
             String rootBefore = fragment.getPlanRoot().getClass().getSimpleName()
@@ -58,8 +57,8 @@ public class AddLocalExchange {
             String rootAfter = fragment.getPlanRoot().getClass().getSimpleName()
                     + "#" + fragment.getPlanRoot().getId();
             org.apache.logging.log4j.LogManager.getLogger(AddLocalExchange.class).info(
-                    "addLocalExchange DONE: fragment={} maxPerBeInstances={} rootBefore={} rootAfter={} changed={}",
-                    fragment.getFragmentId(), maxPerBeInstances,
+                    "addLocalExchange: qid={} fragment={} maxPerBe={} pooling={} root={}→{} changed={}",
+                    qid, fragment.getFragmentId(), maxPerBeInstances, isPooling,
                     rootBefore, rootAfter, !rootBefore.equals(rootAfter));
         }
     }

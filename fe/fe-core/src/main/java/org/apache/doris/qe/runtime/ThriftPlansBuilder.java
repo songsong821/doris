@@ -411,7 +411,9 @@ public class ThriftPlansBuilder {
                         .count();
                 if (leCount > 0) {
                     org.apache.logging.log4j.LogManager.getLogger(ThriftPlansBuilder.class).info(
-                            "ThriftPlan fragment={} totalNodes={} localExchangeNodes={} rootType={}",
+                            "ThriftPlan qid={} be={} fragment={} nodes={} leNodes={} rootType={}",
+                            org.apache.doris.common.util.DebugUtil.printId(coordinatorContext.queryId),
+                            worker.address(),
                             fragment.getFragmentId(),
                             planThrift.getPlan().getNodesSize(),
                             leCount,

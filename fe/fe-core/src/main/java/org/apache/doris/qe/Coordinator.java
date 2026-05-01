@@ -391,6 +391,7 @@ public class Coordinator implements CoordInterface {
         this.queryGlobals.setTimeZone(timezone);
         this.queryGlobals.setLoadZeroTolerance(loadZeroTolerance);
         this.queryOptions.setBeExecVersion(Config.be_exec_version);
+        this.queryOptions.setEnableLocalShufflePlanner(false);
 
         List<Integer> fragmentIds = new ArrayList<>();
         for (PlanFragment fragment : fragments) {
@@ -427,6 +428,8 @@ public class Coordinator implements CoordInterface {
         this.queryOptions.setFeProcessUuid(ExecuteEnv.getInstance().getProcessUUID());
         this.queryOptions.setMysqlRowBinaryFormat(
                     context.getCommand() == MysqlCommand.COM_STMT_EXECUTE);
+        // Old Coordinator does not plan local exchange in FE. Force BE to plan its own.
+        this.queryOptions.setEnableLocalShufflePlanner(false);
     }
 
     public ConnectContext getConnectContext() {

@@ -167,8 +167,9 @@ public:
         size_t size = lhs_column->size();
 
         bool lhs_is_nullable = lhs_column->is_nullable();
-        auto [lhs_data_column, lhs_null_map] =
-                _get_raw_data_and_null_map(lhs_column, lhs_is_nullable);
+        auto __temp = _get_raw_data_and_null_map(lhs_column, lhs_is_nullable);
+        uint8_t* lhs_data_column = __temp.first;
+        uint8_t* lhs_null_map = __temp.second;
         size_t filted = simd::count_zero_num((int8_t*)lhs_data_column, size);
         bool lhs_all_true = (filted == 0);
         bool lhs_all_false = (filted == size);

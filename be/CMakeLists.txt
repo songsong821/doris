@@ -707,7 +707,12 @@ endif ()
 
 # Add sanitize static link flags
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")
-    set(DORIS_LINK_LIBS ${DORIS_LINK_LIBS} ${MALLOCLIB})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        set(UBSAN_LINK_FLAGS -static-libubsan)
+    else()
+        set(UBSAN_LINK_FLAGS -rtlib=compiler-rt)
+    endif()
+    set(DORIS_LINK_LIBS ${DORIS_LINK_LIBS} ${MALLOCLIB} ${UBSAN_LINK_FLAGS})
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "ASAN" OR "${CMAKE_BUILD_TYPE}" STREQUAL "ASAN_UT")
     set(DORIS_LINK_LIBS ${DORIS_LINK_LIBS} ${ASAN_LIBS})
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "LSAN")

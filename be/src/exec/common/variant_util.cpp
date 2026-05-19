@@ -1719,7 +1719,8 @@ void parse_json_to_variant_impl(IColumn& column, const char* src, size_t length,
         Field field = Field::create_field<TYPE_STRING>(String(src, length));
         result = ParseResult {{root_path}, {field}};
     }
-    auto& [paths, values] = *result;
+    auto& paths = result->paths;
+    auto& values = result->values;
     assert(paths.size() == values.size());
     size_t old_num_rows = column_variant.rows();
     if (config.deprecated_enable_flatten_nested) {

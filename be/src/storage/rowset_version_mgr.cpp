@@ -226,7 +226,9 @@ struct GetRowsetsCntl : std::enable_shared_from_this<GetRowsetsCntl> {
 
     Status start_req_bg() {
         task_cnt = req_addrs.size();
-        for (const auto& [ip, port] : req_addrs) {
+        for (const auto& addr : req_addrs) {
+            const auto& ip = addr.first;
+            const auto& port = addr.second;
             bthread_t tid;
             bthread_attr_t attr = BTHREAD_ATTR_NORMAL;
 

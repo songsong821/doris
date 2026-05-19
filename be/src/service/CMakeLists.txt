@@ -43,6 +43,11 @@ if (${MAKE_TEST} STREQUAL "OFF" AND ${BUILD_BENCHMARK} STREQUAL "OFF")
 
     target_link_libraries(doris_be
         ${DORIS_LINK_LIBS}
+        sframe
+        ann_index
+        Exec
+        faiss
+        openblas
     )
 
     install(DIRECTORY DESTINATION ${OUTPUT_DIR}/lib/)

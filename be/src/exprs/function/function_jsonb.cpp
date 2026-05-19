@@ -2582,8 +2582,9 @@ public:
         CheckNullFun json_null_check = always_not_null;
         GetJsonStringRefFun get_json_fun;
         // prepare jsonb data column
-        auto&& [col_json, json_is_const] =
-                unpack_if_const(block.get_by_position(arguments[0]).column);
+        auto&& __tmp_json = unpack_if_const(block.get_by_position(arguments[0]).column);
+        auto&& col_json = __tmp_json.first;
+        auto&& json_is_const = __tmp_json.second;
         const auto* col_json_string = check_and_get_column<ColumnString>(col_json.get());
         if (const auto* nullable = check_and_get_column<ColumnNullable>(col_json.get())) {
             col_json_string =
@@ -2623,8 +2624,9 @@ public:
         // one_or_all
         CheckNullFun one_null_check = always_not_null;
         OneFun one_check = always_one;
-        auto&& [col_one, one_is_const] =
-                unpack_if_const(block.get_by_position(arguments[1]).column);
+        auto&& __tmp_one = unpack_if_const(block.get_by_position(arguments[1]).column);
+        auto&& col_one = __tmp_one.first;
+        auto&& one_is_const = __tmp_one.second;
         one_is_const |= input_rows_count == 1;
         const auto* col_one_string = check_and_get_column<ColumnString>(col_one.get());
         if (const auto* nullable = check_and_get_column<ColumnNullable>(col_one.get())) {
@@ -2669,8 +2671,9 @@ public:
         }
 
         // search_str
-        auto&& [col_search, search_is_const] =
-                unpack_if_const(block.get_by_position(arguments[2]).column);
+        auto&& __tmp_search = unpack_if_const(block.get_by_position(arguments[2]).column);
+        auto&& col_search = __tmp_search.first;
+        auto&& search_is_const = __tmp_search.second;
 
         const auto* col_search_string = check_and_get_column<ColumnString>(col_search.get());
         if (const auto* nullable = check_and_get_column<ColumnNullable>(col_search.get())) {

@@ -233,7 +233,8 @@ void CloudWarmUpManager::handle_jobs() {
 
             auto tablet_meta = tablet->tablet_meta();
             auto rs_metas = snapshot_rs_metas(tablet.get());
-            for (auto& [_, rs] : rs_metas) {
+            for (auto& _item : rs_metas) {
+                auto& rs = _item.second;
                 auto storage_resource = rs->remote_storage_resource();
                 if (!storage_resource) {
                     LOG(WARNING) << storage_resource.error();

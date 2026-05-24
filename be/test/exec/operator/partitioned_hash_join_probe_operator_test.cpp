@@ -236,7 +236,9 @@ TEST_F(PartitionedHashJoinProbeOperatorTest, InitAndOpen) {
 }
 
 TEST_F(PartitionedHashJoinProbeOperatorTest, CloseReleasesSpillResources) {
-    auto [probe_operator, sink_operator] = _helper.create_operators();
+    auto __ops = _helper.create_operators();
+    auto probe_operator = std::get<0>(__ops);
+    auto sink_operator = std::get<1>(__ops);
 
     std::shared_ptr<MockPartitionedHashJoinSharedState> shared_state;
     auto local_state = _helper.create_probe_local_state(_helper.runtime_state.get(),
@@ -381,7 +383,9 @@ TEST_F(PartitionedHashJoinProbeOperatorTest, CloseReturnsWriterCloseError) {
 }
 
 TEST_F(PartitionedHashJoinProbeOperatorTest, RepartitionCurrentPartition) {
-    auto [probe_operator, sink_operator] = _helper.create_operators();
+    auto __ops = _helper.create_operators();
+    auto probe_operator = std::get<0>(__ops);
+    auto sink_operator = std::get<1>(__ops);
 
     auto st = probe_operator->init(probe_operator->_tnode, _helper.runtime_state.get());
     ASSERT_TRUE(st.ok()) << "init failed: " << st.to_string();

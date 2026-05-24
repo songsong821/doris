@@ -109,7 +109,12 @@ add_subdirectory(storage/index/ann)
 
 add_executable(doris_be_test ${UT_FILES})
 
-target_link_libraries(doris_be_test ${TEST_LINK_LIBS} 
+target_link_libraries(doris_be_test ${TEST_LINK_LIBS}
+    sframe
+    ann_index
+    Exec
+    faiss
+    openblas
     -Wl,--whole-archive vector_search_test -Wl,--no-whole-archive)
 set_target_properties(doris_be_test PROPERTIES COMPILE_FLAGS "-fno-access-control")
 target_compile_options(doris_be_test PRIVATE -include gtest/gtest.h)
